@@ -124,7 +124,7 @@ class MultiClient(crab.CRABClient):
                     if failed:
                         f.write('~/bin/craba.py resubmit "$@" -- "%s"' % '" "'.join(failed))
                     if pubfailed:
-                        f.write('%s~/bin/craba.py resubmit "$@" --publication -- "%s"' % (('\n' if failed else ''),'" "'.join(pubfailed))
+                        f.write('%s~/bin/craba.py resubmit "$@" --publication -- "%s"' % (('\n' if failed else ''),'" "'.join(pubfailed)))
             if failed or pubfailed or running:
                 with open('status_crab.sh','w') as f:
                     f.write('~/bin/craba.py status "$@" -- "%s"' % '" "'.join(running+failed+pubfailed))
