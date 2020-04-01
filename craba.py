@@ -90,6 +90,7 @@ class MultiClient(crab.CRABClient):
     def handle(self,name):
         if name=='status': #debug
             failed=[]
+            pubfailed=[]
             done=[]
             running=[]
             for k,v in self.retvals.items():
@@ -102,8 +103,10 @@ class MultiClient(crab.CRABClient):
                     )
                 else:
                     pubSuccess=True
-                if 'failed' in jps or 'failed' in v['publication']:
+                if 'failed' in jps:
                     failed.append(k)
+                elif 'failed' in v['publication']:
+                    pubfailed.append(k)
                 elif jps.keys()==['finished'] and v['status']=='COMPLETED' and pubSuccess:
                     done.append(k)
                 else:
@@ -114,14 +117,17 @@ class MultiClient(crab.CRABClient):
             if running:
                 print '%i jobs still running:' % len(running)
                 print '\n'.join(running)
-            if failed:
-                print '%i jobs failed:' % len(failed)
+            if failed or pubfailed:
+                print '%i jobs failed:' % len(failed)+len(pubfailed)
                 print '\n'.join(failed)
                 with open('resubmit_crab.sh','w') as f:
-                    f.write('~/bin/craba.py resubmit "$@" -- %s' % ' '.join(failed))
-            if failed or running:
+                    if failed:
+                        f.write('~/bin/craba.py resubmit "$@" -- "%s"' % '" "'.join(failed))
+                    if pubfailed:
+                        f.write('%s~/bin/craba.py resubmit "$@" --publication -- "%s"' % (('\n' if failed else ''),'" "'.join(pubfailed))
+            if failed or pubfailed or running:
                 with open('status_crab.sh','w') as f:
-                    f.write('~/bin/craba.py status "$@" -- %s' % ' '.join(running+failed))
+                    f.write('~/bin/craba.py status "$@" -- "%s"' % '" "'.join(running+failed+pubfailed))
     def __call__(self):
         for directory in self.directories:
             sys.argv=[sys.argv[0]]
