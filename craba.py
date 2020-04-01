@@ -94,9 +94,17 @@ class MultiClient(crab.CRABClient):
             running=[]
             for k,v in self.retvals.items():
                 jps=v['jobsPerStatus']
-                if 'failed' in jps:
+                pubEnabled=v['publicationEnabled']
+                if pubEnabled:
+                    pubSuccess=(
+                        (v['publicationFailures']=={}) and
+                        (v['publication']=={'done':jps['finished']})
+                    )
+                else:
+                    pubSuccess=True
+                if 'failed' in jps or 'failed' in v['publication']:
                     failed.append(k)
-                elif jps.keys()==['finished'] and v['status']=='COMPLETED':
+                elif jps.keys()==['finished'] and v['status']=='COMPLETED' and pubSuccess:
                     done.append(k)
                 else:
                     running.append(k)
@@ -141,7 +149,7 @@ if os.path.exists('crab_log.json'):
     with open('crab_log.json') as f:
         js=json.load(f)
     #Fix for old bug, remove trailing slashes from dict keys
-    for key in js:
+    for key in js.keys():
         if '/' in key:
             js[key.rstrip('/')]=js.pop(key)
     for key,value in retval.items():
