@@ -7,6 +7,8 @@ import FWCore.ParameterSet.Config as cms
 
 from Configuration.StandardSequences.Eras import eras
 
+from FWCore.ParameterSet.VarParsing import VarParsing as vp
+
 options=vp('analysis')
 options.parseArguments()
 
