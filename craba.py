@@ -98,7 +98,7 @@ class MultiClient(crab.CRABClient):
                 if pubEnabled:
                     pubSuccess=(
                         (v['publicationFailures']=={}) and
-                        (v['publication']=={'done':jps['finished']})
+                        ('finished' in jps and v['publication']=={'done':jps['finished']})
                     )
                 else:
                     pubSuccess=True
