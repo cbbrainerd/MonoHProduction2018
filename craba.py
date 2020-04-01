@@ -120,6 +120,8 @@ class MultiClient(crab.CRABClient):
             if failed or pubfailed:
                 print '%i jobs failed:' % (len(failed)+len(pubfailed))
                 print '\n'.join(failed)
+                if pubfailed:
+                    print ' (Publication)\n'.join(pubfailed+[''])
                 with open('resubmit_crab.sh','w') as f:
                     if failed:
                         f.write('~/bin/craba.py resubmit "$@" -- "%s"' % '" "'.join(failed))
