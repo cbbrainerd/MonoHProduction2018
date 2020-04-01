@@ -118,7 +118,7 @@ class MultiClient(crab.CRABClient):
                 print '%i jobs still running:' % len(running)
                 print '\n'.join(running)
             if failed or pubfailed:
-                print '%i jobs failed:' % len(failed)+len(pubfailed)
+                print '%i jobs failed:' % (len(failed)+len(pubfailed))
                 print '\n'.join(failed)
                 with open('resubmit_crab.sh','w') as f:
                     if failed:
