@@ -5,12 +5,14 @@
 
 from WMCore.Configuration import Configuration
 from CRABAPI.RawCommand import crabCommand as crab
+from crab_blacklist import blacklist
 import os,re
 
 import argparse
 
 parser=argparse.ArgumentParser()
 parser.add_argument('step',type=int,help='Step to submit')
+parser.add_argument('year',type=int,help='Year to submit jobs for.')
 parser.add_argument('--continue','-c',dest='continue_',action='store_true',help='Continue after submission failure.')
 parser.add_argument('--fake_submit','-f',action='store_true',help="Don't really submit to server. Useful for testing script.")
 parser.add_argument('--skip','-s',action='store_true',help='Skip jobs from a previous stage that are unfinished, without prompting.')
@@ -19,6 +21,13 @@ args=parser.parse_args()
 validate_taskname=re.compile(r"^[a-zA-Z0-9\-_:]{1,100}$")
 
 step=args.step
+year=args.year
+
+if not year in [2016,2018]:
+    raise ValueError('Not supported for year %i.' % year)
+
+if step > 3 or step < 1:
+    raise ValueError('Invalid step %i' % step)
 
 if args.fake_submit:
     #Runs through the motions of submitting, but does not submit anything to server
@@ -27,8 +36,6 @@ if args.fake_submit:
     from CRABClient.JobType.CMSSWConfig import configurationCache
     CRABClient.Commands.submit.submit=submit
 
-if step > 3 or step < 1:
-    raise ValueError('Invalid step %i' % step)
 last_step=step-1
 step='step%i' % step
 
@@ -52,13 +59,13 @@ def get_config(dataset,inputDataset):
     #if it still doesn't validate, fall back to default
     if validate_taskname.match(request_name):
         config.General.requestName = str(request_name)
-    config.General.workArea = 'MonoHProduction_2018_%s' % step
+    config.General.workArea = 'MonoHProduction_%i_%s' % (year,step)
     if args.fake_submit:
         config.General.workArea = 'FakeSubmit_%s' % step
     
     config.section_("JobType")
     config.JobType.pluginName  = 'Analysis'
-    config.JobType.psetName = '%s_2018.py' % step
+    config.JobType.psetName = '%s_%i.py' % (step,year)
     config.JobType.numCores = 8
     config.JobType.maxMemoryMB = 8000
     config.JobType.allowUndistributedCMSSW = True
@@ -66,18 +73,20 @@ def get_config(dataset,inputDataset):
     config.section_("Data")
     config.Data.splitting = 'FileBased'
     config.Data.unitsPerJob = 1
-    config.Data.outputDatasetTag = '%s_%s_HZZ' % (dataset,step)
+    config.Data.outputDatasetTag = '%s_%s_HZZ_%i' % (dataset,step,year)
     config.Data.inputDBS = 'phys03'
     config.Data.publication = True
     config.Data.inputDataset = inputDataset
 
     config.section_("Site")
     config.Site.storageSite = 'T2_US_Wisconsin'
+    config.Site.whitelist=['T2_US_*']
+    config.Site.blacklist=blacklist
     return config 
 
 import pickle, glob, json
 
-json_file='MonoHProduction_2018_step%i/crab_log.json' % last_step
+json_file='MonoHProduction_%i_step%i/crab_log.json' % (year,last_step)
 try:
     with open(json_file) as f:
         js=json.load(f)
