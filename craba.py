@@ -36,12 +36,22 @@ except KeyError:
 
 import imp
 
+quiet=False
+if sys.argv[1] in [ '-q' , '--quiet' ]:
+    quiet=True
+    sys.argv.pop(1)
+
 #Setup loggers just once. 
 import CRABClient.ClientUtilities
 class initLoggers():
+    info_cache=''
     def __init__(self,initLoggers):
         self.tblogger,self.logger,self.memhandler=initLoggers()
     def __call__(self):
+        def quiet_msg(msg):
+            info_cache=msg
+        if quiet:
+            self.logger.info=quiet_msg
         return self.tblogger,self.logger,self.memhandler
 
 initLoggers=initLoggers(CRABClient.ClientUtilities.initLoggers)
@@ -93,8 +103,20 @@ class MultiClient(crab.CRABClient):
             pubfailed=[]
             done=[]
             running=[]
+            totalJobs=0
+            totalFinishedJobs=0
+            totalPublishedJobs=0
             for k,v in self.retvals.items():
                 jps=v['jobsPerStatus']
+                for n in jps.values():
+                    totalJobs+=n
+                try:
+                    totalFinishedJobs+=jps['finished']
+                    totalPublishedJobs+=v['publication']['done']
+                except KeyError:
+                    pass
+                if quiet:
+                    print k,jps
                 pubEnabled=v['publicationEnabled']
                 if pubEnabled:
                     pubSuccess=(
@@ -130,6 +152,9 @@ class MultiClient(crab.CRABClient):
             if failed or pubfailed or running:
                 with open('status_crab.sh','w') as f:
                     f.write('~/bin/craba.py status "$@" -- "%s"' % '" "'.join(running+failed+pubfailed))
+            print 'Total status: %i/%i jobs finished.' % (totalFinishedJobs,totalJobs)
+            if totalPublishedJobs:
+                print 'And %i/%i finished jobs are published.' % (totalPublishedJobs,totalFinishedJobs)
     def __call__(self):
         for directory in self.directories:
             sys.argv=[sys.argv[0]]
